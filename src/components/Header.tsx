@@ -24,14 +24,14 @@ export default function Header({ handleLogout }: HeaderProps) {
       {/* Menu */}
       <ul className="flex gap-6 text-gray-700 font-semibold items-center">
         <li
-          onClick={() => navigate("/")}
+          onClick={() => navigate("/dashboard")}
           className="hover:text-indigo-600 cursor-pointer transition"
         >
           Home
         </li>
 
         <li
-          onClick={() => navigate("/chat")}
+          onClick={() => navigate("/message")}
           className="hover:text-indigo-600 cursor-pointer transition"
         >
           Chat

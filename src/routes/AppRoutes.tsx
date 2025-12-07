@@ -6,6 +6,7 @@ import Signup from '../pages/Signup';
 import Events from '../pages/Events';
 import WelcomePage from '../pages/Welcome.page';
 import CreatePost from '../pages/CreateAPost';
+import MessengerUI from '../pages/Message';
 
 const AppRoutes = () => (
   <Routes>
@@ -15,6 +16,7 @@ const AppRoutes = () => (
     <Route path="/dashboard" element={<Dashboard />} />
     <Route path="/events" element={<Events />} />
     <Route path='/create-post' element={<CreatePost />} />
+    <Route path='/message' element={<MessengerUI />} />
   </Routes>
 );
 

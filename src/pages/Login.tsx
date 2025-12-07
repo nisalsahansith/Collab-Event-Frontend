@@ -27,7 +27,7 @@ export default function Login() {
       if (data?.data?.accessToken) {
         localStorage.setItem("accessToken", data.data.accessToken);
         localStorage.setItem("refreshToken", data.data.refreshToken);
-
+        localStorage.setItem("userId",data.data.id)
         const resData: any = await getMyDetails();
         setUser(resData.data);
 

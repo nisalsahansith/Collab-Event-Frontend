@@ -5,6 +5,9 @@ import type { AppDispatch } from "../redux/store";
 import { unwrapResult } from "@reduxjs/toolkit";
 import type { Post } from "../redux/events/eventAction";
 import { useNavigate } from "react-router-dom";
+import Header from "../components/Header";
+import { logout } from "../context/authContext";
+import Footer from "../components/Footer";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -37,26 +40,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gray-100">
 
-      {/* Navbar */}
-      <nav className="bg-white shadow-md py-4 px-6 flex justify-between items-center sticky top-0 z-50">
-        <div className="text-2xl font-bold text-indigo-600">CollabEvent</div>
-
-        <ul className="flex gap-6 text-gray-700 font-semibold items-center">
-          <li className="hover:text-indigo-600 cursor-pointer">Home</li>
-          <li className="hover:text-indigo-600 cursor-pointer">Chat</li>
-          <li onClick={goToCreatePost} className="hover:text-indigo-600 cursor-pointer">
-            Create Post
-          </li>
-          <li className="hover:text-indigo-600 cursor-pointer">Profile</li>
-
-          <button
-            onClick={handleLogout}
-            className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg shadow"
-          >
-            Logout
-          </button>
-        </ul>
-      </nav>
+      <Header handleLogout={logout}/>
 
       {/* Main Feed */}
       <main className="max-w-2xl mx-auto py-10">
@@ -72,11 +56,14 @@ export default function Dashboard() {
               {/* Post header */}
               <div className="flex items-center gap-3 mb-4">
                 <img
-                  src={"https://via.placeholder.com/40"}
+                  src={
+                    post.owner?.image ||
+                    "https://images.rawpixel.com/image_png_800/cHJpdmF0ZS9sci9pbWFnZXMvd2Vic2l0ZS8yMDIzLTAxL3JtNjA5LXNvbGlkaWNvbi13LTAwMi1wLnBuZw.png"
+                  }
                   className="w-12 h-12 rounded-full"
                 />
                 <div>
-                  <p className="font-semibold text-gray-800">Unknown User</p>
+                  <p className="font-semibold text-gray-800">{post.owner.name || "Unknown User"}</p>
                   <p className="text-gray-500 text-sm">
                     {new Date(post.createdAt).toLocaleString()}
                   </p>
@@ -110,12 +97,27 @@ export default function Dashboard() {
               <div className="flex justify-between mt-5 border-t pt-3 text-gray-600 font-medium">
                 <button className="hover:text-blue-600">👍 Like</button>
                 <button className="hover:text-blue-600">💬 Comment</button>
-                <button className="hover:text-blue-600">↗ Share</button>
+                {/* Chat button */}
+                  <button
+                    className="hover:text-indigo-600 font-semibold"
+                    onClick={() =>
+                      navigate("/message", {
+                        state: {
+                          receiverId: post.owner._id,
+                          receiverName: post.owner.name,
+                          receiverAvatar: post.owner.image,
+                        },
+                      })
+                    }
+                  >
+                    💬 Chat
+                  </button>
               </div>
             </div>
           ))}
         </div>
       </main>
+      <Footer />
     </div>
   );
 }
