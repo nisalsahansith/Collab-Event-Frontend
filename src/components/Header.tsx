@@ -45,7 +45,7 @@ export default function Header({ handleLogout }: HeaderProps) {
         </li>
 
         <li
-          onClick={() => navigate("/profile")}
+          onClick={() => navigate("/myprofile")}
           className="hover:text-indigo-600 cursor-pointer transition"
         >
           Profile
