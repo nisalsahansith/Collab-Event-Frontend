@@ -8,6 +8,7 @@ import WelcomePage from '../pages/Welcome.page';
 import CreatePost from '../pages/CreateAPost';
 import MessengerUI from '../pages/Message';
 import ProfilePage from '../pages/ProfilePage';
+import SettingsPage from '../pages/Setting';
 
 const AppRoutes = () => (
   <Routes>
@@ -19,6 +20,7 @@ const AppRoutes = () => (
     <Route path='/create-post' element={<CreatePost />} />
     <Route path='/message' element={<MessengerUI />} />
     <Route path='/myprofile' element={<ProfilePage />} />
+    <Route path='/setting' element={<SettingsPage />} />
   </Routes>
 );
 

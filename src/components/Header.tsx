@@ -52,7 +52,7 @@ export default function Header({ handleLogout }: HeaderProps) {
         </li>
 
         <li
-          onClick={() => navigate("/settings")}
+          onClick={() => navigate("/setting")}
           className="hover:text-indigo-600 cursor-pointer transition"
         >
           Settings

@@ -39,6 +39,8 @@ export default function ProfilePage() {
   const [tagsInput, setTagsInput] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
+
 
   const [updating, setUpdating] = useState(false); // loading state
 
@@ -132,7 +134,32 @@ export default function ProfilePage() {
     } finally {
       setUpdating(false);
     }
-  };
+    };
+    
+    useEffect(() => {
+        const fetchPosts = async () => {
+            try {
+            const res = await api.get(`/post/user/${userId}`);
+            const postsArray = Array.isArray(res.data.posts) ? res.data.posts : Array.isArray(res.data) ? res.data : [];
+            setPosts(postsArray);
+
+            // Fetch comment counts for each post
+            const counts: Record<string, number> = {};
+            await Promise.all(
+                postsArray.map(async (post: Post) => {
+                const res = await api.get(`/comments/${post._id}`);
+                counts[post._id] = Array.isArray(res.data) ? res.data.length : 0;
+                })
+            );
+            setCommentCounts(counts);
+            } catch (err) {
+            console.error(err);
+            }
+        };
+
+        fetchPosts();
+        }, [userId]);
+
 
   /* ================= UI ================= */
   return (
@@ -215,14 +242,17 @@ export default function ProfilePage() {
                     ))}
                   </div>
 
-                  <div className="flex gap-6 mt-4 text-gray-600">
-                    <button className="flex items-center gap-2 hover:text-indigo-600">
-                      ❤️ <span>{post.likes || 0}</span>
+                <div className="flex gap-6 mt-4 text-gray-600">
+                    {/* LIKE BUTTON */}
+                    <button className="flex items-center gap-2 hover:text-red-500">
+                        ❤️ <span>{post.likes ? post.likes.length : 0}</span>
                     </button>
-                    <button className="flex items-center gap-2 hover:text-indigo-600">
-                      💬 <span>{post.comments || 0}</span>
+
+                    {/* COMMENT COUNT */}
+                    <button className="flex items-center gap-2 hover:text-blue-500">
+                        💬 <span>{commentCounts[post._id] ?? 0}</span>
                     </button>
-                  </div>
+                    </div>
                 </div>
               </div>
             ))}
