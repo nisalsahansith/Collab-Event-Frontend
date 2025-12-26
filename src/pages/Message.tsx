@@ -98,6 +98,9 @@ export default function ChatPage() {
     socketRef.current = io(SOCKET_URL);
     socketRef.current.emit("joinRoom", currentUserId);
     socketRef.current.on("receiveMessage", (msg: Message) => {
+      console.log(msg.receiverId)
+      console.log(currentUserId)
+      if (msg.senderId === currentUserId) return;
       setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));
     });
     return () => {
@@ -135,37 +138,41 @@ export default function ChatPage() {
   };
 
   // 4. Send Message (Updated)
-  const handleSend = async () => {
-    if ((!input.trim() && !selectedFile) || !selectedUser || !currentUserId) return;
+ const fileToBase64 = (file: File) =>
+  new Promise<string>((resolve, reject) => {
+    const r = new FileReader();
+    r.readAsDataURL(file);
+    r.onload = () => resolve(r.result as string);
+    r.onerror = reject;
+  });
 
-    // TODO: In a real app, upload `selectedFile` to your backend/S3 first, 
-    // get the URL, and then send it in the socket message.
-    // For now, we will simulate it using the local preview URL or base64.
-    
-    let uploadedImageUrl = undefined;
-    if (selectedFile) {
-        // Mock upload: usually await api.upload(formData)
-        uploadedImageUrl = imagePreview || ""; 
-    }
+const handleSend = async () => {
+  if ((!input.trim() && !selectedFile) || !currentUserId || !selectedUser) return;
 
-    const msg: Message = {
+  const fileBase64 = selectedFile ? await fileToBase64(selectedFile) : null;
+
+  socketRef.current?.emit("sendMessage", {
+    senderId: currentUserId,
+    receiverId: selectedUser.id,
+    text: input,
+    fileBase64,              // <-- send image as base64
+  });
+
+  setMessages(prev => [
+    ...prev,
+    {
       id: Date.now().toString(),
       senderId: currentUserId,
       receiverId: selectedUser.id,
       text: input,
-      image: uploadedImageUrl,
+      image: selectedFile ? URL.createObjectURL(selectedFile) : undefined,
       timestamp: new Date().toISOString(),
-    };
+    }
+  ]);
 
-    socketRef.current?.emit("sendMessage", msg);
-    setMessages((prev) => [...prev, msg]);
-    
-    // Reset states
-    setInput("");
-    setShowEmojiPicker(false);
-    clearImage();
-  };
-
+  setInput("");
+  clearImage();
+};
   const filteredUsers = users.filter(u => u.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
   return (
