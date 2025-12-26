@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { register } from "../services/auth";
-import { useAuth } from "../context/authContext";
+import { User, Mail, Lock, Eye, EyeOff, ArrowRight, Loader2, UserPlus } from "lucide-react";
+import toast, { Toaster } from "react-hot-toast";
 
 export default function Signup() {
   const [form, setForm] = useState({
@@ -9,19 +10,23 @@ export default function Signup() {
     email: "",
     password: "",
   });
-
-  const [error, setError] = useState<string | null>(null);
+  
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-
+  
   const navigate = useNavigate();
-  const { setUser } = useAuth();
 
-  const handleSignup = async () => {
-    setError(null);
+  const handleSignup = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
 
     if (!form.name.trim() || !form.email.trim() || !form.password.trim()) {
-      setError("All fields are required.");
+      toast.error("All fields are required.");
       return;
+    }
+
+    if (form.password.length < 6) {
+        toast.error("Password must be at least 6 characters.");
+        return;
     }
 
     try {
@@ -29,96 +34,136 @@ export default function Signup() {
       const data: any = await register(form.name, form.email, form.password);
 
       if (data?.message === "User registed") {
-        navigate("/login");
+        toast.success("Account created successfully! Redirecting...");
+        setTimeout(() => navigate("/login"), 1500);
       } else {
-        setError("Signup failed.");
+        toast.error("Signup failed. Please try again.");
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Signup error:", err);
-      setError("Signup failed.");
+      const msg = err.response?.data?.message || "Signup failed. Please try again.";
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div
-      className="min-h-screen flex items-center justify-center bg-cover bg-center bg-no-repeat relative"
-      style={{
-        backgroundImage:
-          "url('https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=2000&q=80')",
-      }}
-    >
-      <div className="absolute inset-0 bg-black/60"></div>
+    <div className="min-h-screen flex items-center justify-center relative font-sans">
+      <Toaster position="top-center" toastOptions={{ className: 'font-medium text-sm' }}/>
 
-      <div className="relative z-20 w-full max-w-md bg-white/10 backdrop-blur-xl rounded-2xl p-8 shadow-2xl border border-white/20">
-        <h1 className="text-3xl font-bold text-white text-center mb-8">
-          Create Account
-        </h1>
+      {/* BACKGROUND IMAGE & OVERLAY */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat z-0"
+        style={{
+          backgroundImage: "url('https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=2000&q=80')",
+        }}
+      >
+         <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[3px]"></div>
+      </div>
 
-        {/* Error UI */}
-        {error && (
-          <p className="text-red-400 text-center mb-4 font-semibold">{error}</p>
-        )}
+      {/* SIGNUP CARD */}
+      <div className="relative z-10 w-full max-w-md p-6 animate-in fade-in zoom-in-95 duration-500">
+        <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl shadow-2xl p-8 sm:p-10">
+          
+          {/* Header */}
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-indigo-600 text-white mb-4 shadow-lg shadow-indigo-600/30">
+              <UserPlus size={24} />
+            </div>
+            <h1 className="text-3xl font-bold text-white tracking-tight">Create Account</h1>
+            <p className="text-slate-300 mt-2 text-sm">Join our community today.</p>
+          </div>
 
-        {/* Name */}
-        <div className="mb-4">
-          <label className="text-gray-200 block mb-2 font-semibold">Name</label>
-          <input
-            type="text"
-            className="w-full p-3 rounded-xl bg-white/20 text-white placeholder-gray-300 border border-white/30 focus:border-indigo-400 outline-none transition"
-            placeholder="Enter your name"
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-          />
-        </div>
+          {/* Form */}
+          <form onSubmit={handleSignup} className="space-y-5">
+            
+            {/* Name Input */}
+            <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider ml-1">Full Name</label>
+                <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <User className="h-5 w-5 text-slate-400 group-focus-within:text-white transition-colors" />
+                    </div>
+                    <input
+                        type="text"
+                        value={form.name}
+                        onChange={(e) => setForm({ ...form, name: e.target.value })}
+                        className="block w-full pl-11 pr-4 py-3.5 bg-black/20 border border-white/10 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-black/30 transition-all sm:text-sm"
+                        placeholder="John Doe"
+                    />
+                </div>
+            </div>
 
-        {/* Email */}
-        <div className="mb-4">
-          <label className="text-gray-200 block mb-2 font-semibold">Email</label>
-          <input
-            type="email"
-            className="w-full p-3 rounded-xl bg-white/20 text-white placeholder-gray-300 border border-white/30 focus:border-indigo-400 outline-none transition"
-            placeholder="Enter your email"
-            value={form.email}
-            onChange={(e) => setForm({ ...form, email: e.target.value })}
-          />
-        </div>
+            {/* Email Input */}
+            <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider ml-1">Email Address</label>
+                <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <Mail className="h-5 w-5 text-slate-400 group-focus-within:text-white transition-colors" />
+                    </div>
+                    <input
+                        type="email"
+                        value={form.email}
+                        onChange={(e) => setForm({ ...form, email: e.target.value })}
+                        className="block w-full pl-11 pr-4 py-3.5 bg-black/20 border border-white/10 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-black/30 transition-all sm:text-sm"
+                        placeholder="you@example.com"
+                    />
+                </div>
+            </div>
 
-        {/* Password */}
-        <div className="mb-6">
-          <label className="text-gray-200 block mb-2 font-semibold">
-            Password
-          </label>
-          <input
-            type="password"
-            className="w-full p-3 rounded-xl bg-white/20 text-white placeholder-gray-300 border border-white/30 focus:border-indigo-400 outline-none transition"
-            placeholder="Enter your password"
-            value={form.password}
-            onChange={(e) => setForm({ ...form, password: e.target.value })}
-          />
-        </div>
+            {/* Password Input */}
+            <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider ml-1">Password</label>
+                <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <Lock className="h-5 w-5 text-slate-400 group-focus-within:text-white transition-colors" />
+                    </div>
+                    <input
+                        type={showPassword ? "text" : "password"}
+                        value={form.password}
+                        onChange={(e) => setForm({ ...form, password: e.target.value })}
+                        className="block w-full pl-11 pr-12 py-3.5 bg-black/20 border border-white/10 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-black/30 transition-all sm:text-sm"
+                        placeholder="••••••••"
+                    />
+                    <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-white transition-colors focus:outline-none"
+                    >
+                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    </button>
+                </div>
+            </div>
 
-        {/* Signup Button */}
-        <button
-          onClick={handleSignup}
-          disabled={loading}
-          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl transition shadow-lg disabled:opacity-60"
-        >
-          {loading ? "Creating Account..." : "Sign Up"}
-        </button>
-
-        {/* Login Link */}
-        <div className="text-center mt-6">
-          <p className="text-gray-300 text-sm">
-            Already have an account?{" "}
-            <a
-              href="/login"
-              className="text-indigo-400 hover:underline font-semibold"
+            {/* Signup Button */}
+            <button
+                type="submit"
+                disabled={loading}
+                className="w-full flex justify-center items-center gap-2 py-3.5 px-4 mt-6 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-indigo-900/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-95"
             >
-              Login
-            </a>
-          </p>
+                {loading ? <Loader2 className="animate-spin h-5 w-5" /> : (
+                    <>
+                        Create Account <ArrowRight size={18} />
+                    </>
+                )}
+            </button>
+          </form>
+
+          {/* Footer / Login Link */}
+          <div className="mt-8 pt-6 border-t border-white/10 text-center">
+            <p className="text-slate-300 text-sm">
+              Already have an account?{" "}
+              <Link 
+                to="/login" 
+                className="font-bold text-white hover:text-indigo-400 transition-colors inline-flex items-center gap-1 group"
+              >
+                Log In 
+                <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+              </Link>
+            </p>
+          </div>
+
         </div>
       </div>
     </div>

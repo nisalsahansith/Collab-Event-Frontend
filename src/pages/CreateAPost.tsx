@@ -5,7 +5,8 @@ import { useAuth } from "../context/authContext";
 import { useDispatch } from "react-redux";
 import { createEvent } from "../redux/events/eventAction";
 import type { AppDispatch } from "../redux/store";
-import api from "../services/api"; // <-- you must have axios instance
+import api from "../services/api";
+import toast from "react-hot-toast";
 
 export default function CreatePost() {
   const { logout } = useAuth();
@@ -18,8 +19,9 @@ export default function CreatePost() {
   const [preview, setPreview] = useState<string | null>(null);
 
   const [loadingAI, setLoadingAI] = useState(false);
+  const [loadingPost, setLoadingPost] = useState(false);
 
-  // TAG ADD
+  //================ TAGS =================//
   const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && tagsInput.trim()) {
       e.preventDefault();
@@ -27,13 +29,9 @@ export default function CreatePost() {
       setTagsInput("");
     }
   };
+  const removeTag = (index: number) => setTags(tags.filter((_, i) => i !== index));
 
-  // REMOVE TAG
-  const removeTag = (index: number) => {
-    setTags(tags.filter((_, i) => i !== index));
-  };
-
-  // IMAGE UPLOAD PREVIEW
+  //================ IMAGE =================//
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -41,86 +39,83 @@ export default function CreatePost() {
     setPreview(URL.createObjectURL(file));
   };
 
-  //----------------------------------------
-  // ⭐ AI — Generate Description
-  //----------------------------------------
+  //================ AI FEATURES =================//
   const generateDescription = async () => {
+    if (!description.trim()) return toast.error("Type something for AI 🤖");
     try {
       setLoadingAI(true);
-      const res = await api.post("/post/ai/description", {
-        prompt: description || "Write a creative event description"
-      });
+      const res = await api.post("/post/ai/description", { prompt: description });
       setDescription(res.data.description);
-    } catch (e) {
-      console.error(e);
-      alert("AI failed to generate description");
+      toast.success("AI Updated Description ✨");
+    } catch {
+      toast.error("AI failed ❌");
     } finally {
       setLoadingAI(false);
     }
   };
 
-  //----------------------------------------
-  // ⭐ AI — Suggest Tags
-  //----------------------------------------
   const generateTags = async () => {
-    if (!description.trim()) return alert("Write description first");
-
+    if (!description.trim()) return toast.error("Write description first!");
     try {
       setLoadingAI(true);
-      const res = await api.post("/post/ai/tags", {
-        text: description
-      });
+      const res = await api.post("/post/ai/tags", { text: description });
       setTags(res.data.tags);
-    } catch (e) {
-      console.error(e);
-      alert("AI failed to generate tags");
+      toast.success("Tags Generated 💡");
+    } catch {
+      toast.error("AI failed ❌");
     } finally {
       setLoadingAI(false);
     }
   };
 
-  //----------------------------------------
-  // ⭐ AI — Generate Image
-  //----------------------------------------
   const generateImageAI = async () => {
-  try {
-    setLoadingAI(true);
-    const res = await api.post("/post/ai/image", {
-      prompt: description || "beautiful event banner"
-    });
+    try {
+      setLoadingAI(true);
+      const res = await api.post("/post/ai/image", {
+        prompt: description || "beautiful event banner"
+      });
+      setPreview(res.data.image);
+      setImageFile(null);
+      toast.success("Image Generated 🖼️");
+    } catch {
+      toast.error("AI failed ❌");
+    } finally {
+      setLoadingAI(false);
+    }
+  };
 
-    // Use the correct property name from backend response
-    setPreview(res.data.image); 
-    setImageFile(null); // AI image is a base64 URL
-  } catch (e) {
-    console.error(e);
-    alert("AI failed to generate image");
-  } finally {
-    setLoadingAI(false);
-  }
-};
-
-  //----------------------------------------
-  // SUBMIT
-  //----------------------------------------
+  //================ SUBMIT =================//
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!description.trim()) return toast.error("Description required!");
 
-    if (!description.trim()) return alert("Description is required!");
+    setLoadingPost(true);
 
     try {
-      await dispatch(
-        createEvent({
+      await toast.promise(
+        dispatch(createEvent({
           description,
-          image: imageFile || preview, // AI URL also accepted
-          tags
-        })
-      ).unwrap();
+          tags,
+          image: imageFile ?? undefined
+        })).unwrap(),
+        {
+          loading: "Posting event...",
+          success: "Post created 🎉",
+          error: "Failed to create post ❌"
+        }
+      );
 
-      alert("Post created successfully!");
+      // Reset form after success
+      setDescription("");
+      setImageFile(null);
+      setPreview(null);
+      setTags([]);
+      setTagsInput("");
+
     } catch (err) {
       console.error(err);
-      alert("Failed to create post.");
+    } finally {
+      setLoadingPost(false);
     }
   };
 
@@ -130,6 +125,7 @@ export default function CreatePost() {
 
       <div className="flex-1 flex justify-center px-4 py-6">
         <div className="bg-white w-full max-w-3xl rounded-2xl shadow-xl p-8">
+          
           <h1 className="text-3xl font-bold text-gray-900 mb-6">Create Post</h1>
 
           <form onSubmit={handleSubmit} className="space-y-8">
@@ -137,40 +133,36 @@ export default function CreatePost() {
             {/* DESCRIPTION */}
             <div>
               <div className="flex justify-between items-center">
-                <label className="text-lg font-semibold text-gray-700">
-                  Description
-                </label>
-
-                {/* AI BUTTON */}
+                <label className="text-lg font-semibold">Description</label>
                 <button
                   type="button"
                   onClick={generateDescription}
-                  className="px-3 py-1 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                  disabled={loadingAI}
+                  className="px-3 py-1 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
                 >
-                  ✨ AI Write
+                  {loadingAI ? "Generating..." : "✨ AI Write"}
                 </button>
               </div>
 
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="w-full p-3 rounded-xl border mt-1 h-40 outline-none focus:ring-2 focus:ring-indigo-500"
                 placeholder="Describe your event..."
+                className="w-full p-3 rounded-xl border mt-2 h-40 outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
 
             {/* TAGS */}
             <div>
               <div className="flex justify-between items-center">
-                <label className="text-lg font-semibold text-gray-700">Tags</label>
-
-                {/* AI BUTTON */}
+                <label className="text-lg font-semibold">Tags</label>
                 <button
                   type="button"
                   onClick={generateTags}
-                  className="px-3 py-1 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                  disabled={loadingAI}
+                  className="px-3 py-1 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
                 >
-                  ✨ AI Tags
+                  {loadingAI ? "Generating..." : "✨ AI Tags"}
                 </button>
               </div>
 
@@ -179,24 +171,15 @@ export default function CreatePost() {
                 value={tagsInput}
                 onChange={(e) => setTagsInput(e.target.value)}
                 onKeyDown={handleTagKeyDown}
-                className="w-full p-3 rounded-xl border mt-1 outline-none focus:ring-2 focus:ring-indigo-500"
                 placeholder="Type tag & press Enter..."
+                className="w-full p-3 rounded-xl border mt-2 outline-none focus:ring-2 focus:ring-indigo-500"
               />
 
               <div className="flex flex-wrap gap-3 mt-3">
-                {tags.map((tag, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full shadow-sm"
-                  >
-                    #{tag}
-                    <button
-                      type="button"
-                      onClick={() => removeTag(index)}
-                      className="ml-2 text-indigo-500 hover:text-red-500"
-                    >
-                      ✕
-                    </button>
+                {tags.map((t, i) => (
+                  <div key={i} className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full flex items-center">
+                    #{t}
+                    <button onClick={() => removeTag(i)} className="ml-2 hover:text-red-600">✕</button>
                   </div>
                 ))}
               </div>
@@ -205,40 +188,27 @@ export default function CreatePost() {
             {/* IMAGE */}
             <div>
               <div className="flex justify-between items-center">
-                <label className="text-lg font-semibold text-gray-700">
-                  Upload Image
-                </label>
-
-                {/* AI BUTTON */}
+                <label className="text-lg font-semibold">Upload Image</label>
                 <button
                   type="button"
                   onClick={generateImageAI}
-                  className="px-3 py-1 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                  disabled={loadingAI}
+                  className="px-3 py-1 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
                 >
-                  ✨ AI Image
+                  {loadingAI ? "Generating..." : "✨ AI Image"}
                 </button>
               </div>
 
-              <label className="mt-2 flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-xl h-56 cursor-pointer hover:border-indigo-400 transition">
-                <input
-                  type="file"
-                  className="hidden"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                />
-
+              <label className="border-2 border-dashed border-gray-300 rounded-xl h-56 mt-2 flex items-center justify-center cursor-pointer hover:border-indigo-500">
+                <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+                
                 {!preview ? (
-                  <div className="flex flex-col items-center text-gray-500">
-                    <span className="text-4xl mb-2">📸</span>
-                    <p>Click to upload or drag and drop</p>
-                    <p className="text-sm mt-1">PNG, JPG up to 5MB</p>
+                  <div className="text-center text-gray-500">
+                    <p className="text-4xl">📸</p>
+                    <p>Click or drag file to upload</p>
                   </div>
                 ) : (
-                  <img
-                    src={preview}
-                    alt="Preview"
-                    className="h-full w-full object-cover rounded-xl"
-                  />
+                  <img src={preview} className="h-full w-full object-cover rounded-xl" />
                 )}
               </label>
             </div>
@@ -246,11 +216,13 @@ export default function CreatePost() {
             {/* SUBMIT */}
             <button
               type="submit"
-              disabled={loadingAI}
-              className="w-full py-3 text-white font-semibold text-lg bg-indigo-600 rounded-xl hover:bg-indigo-700 transition shadow-lg"
+              disabled={loadingPost}
+              className={`w-full py-3 text-white font-semibold rounded-xl 
+              ${loadingPost ? "bg-gray-400" : "bg-indigo-600 hover:bg-indigo-700"}`}
             >
-              {loadingAI ? "AI is working..." : "Post Event"}
+              {loadingPost ? "Posting..." : "Post Event"}
             </button>
+
           </form>
         </div>
       </div>

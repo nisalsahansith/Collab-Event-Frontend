@@ -6,115 +6,95 @@ import { unwrapResult } from "@reduxjs/toolkit";
 import { useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import { Heart, MessageCircle, Send, Trash, Home, Plus, Bookmark, User, Settings } from "lucide-react";
+import { Heart, MessageCircle, Send, Trash, Home, Plus, User, Settings, X, Hash, MoreHorizontal } from "lucide-react";
 import api from "../services/api";
 import ReactMarkdown from "react-markdown";
 
 /* ================= TYPES ================= */
-interface User {
-  _id: string;
-  name: string;
-  imageURL?: string;
-}
+interface User { _id: string; name: string; imageURL?: string; }
+interface Comment { _id: string; text: string; createdAt: string; user: User; }
+interface Post { _id: string; description: string; tags: string[]; imageURL?: string; likes: string[]; owner: User; createdAt: string; }
 
-interface Comment {
-  _id: string;
-  text: string;
-  createdAt: string;
-  user: User;
-}
-
-interface Post {
-  _id: string;
-  description: string;
-  tags: string[];
-  imageURL?: string;
-  likes: string[];
-  owner: User;
-  createdAt: string;
-}
-
-/* ================= SIDEBARS ================= */
+/* ================= SIDEBAR LEFT ================= */
 function LeftSidebar() {
   const navigate = useNavigate();
+  
+  const NavItem = ({ icon: Icon, label, path }: { icon: any, label: string, path: string }) => (
+    <button 
+      onClick={() => navigate(path)} 
+      className="flex items-center gap-4 px-4 py-3 rounded-xl text-slate-600 font-medium hover:bg-indigo-50 hover:text-indigo-600 transition-all duration-200 group w-full text-left"
+    >
+      <Icon size={22} className="text-slate-400 group-hover:text-indigo-600 transition-colors" /> 
+      {label}
+    </button>
+  );
+
   return (
-    <div className="bg-white shadow rounded-xl p-5 sticky top-20 flex flex-col gap-5">
-      <button onClick={() => navigate("/dashboard")} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 transition">
-        <Home size={20} /> Home
-      </button>
-      <button onClick={() => navigate("/message")} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 transition">
-        <MessageCircle size={20} /> Chat
-      </button>
-      <button onClick={() => navigate("/create-post")} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 transition">
-        <Plus size={20} /> Create Post
-      </button>
-      <button onClick={() => navigate("/myprofile")} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 transition">
-        <User size={20} /> My Profile
-      </button>
-      <button onClick={() => navigate("/setting")} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 transition">
-        <Settings size={20} /> Setting
-      </button>
+    <div className="bg-white border border-slate-100 shadow-sm rounded-2xl p-4 sticky top-24 flex flex-col gap-2">
+      <NavItem icon={Home} label="Feed" path="/dashboard" />
+      <NavItem icon={MessageCircle} label="Messages" path="/message" />
+      <NavItem icon={Plus} label="Create Post" path="/create-post" />
+      <NavItem icon={User} label="Profile" path="/myprofile" />
+      <div className="h-px bg-slate-100 my-2 mx-4"></div>
+      <NavItem icon={Settings} label="Settings" path="/setting" />
     </div>
   );
 }
 
-interface UserInfo {
-  name: string;
-  imageURL?: string;
-}
-
-// RightSidebar component
+/* ================= SIDEBAR RIGHT ================= */
 function RightSidebar() {
-  const [user, setUser] = useState<UserInfo | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const userId = localStorage.getItem("userId");
   const navigate = useNavigate();
 
   useEffect(() => {
     if (!userId) return;
-
-    const fetchUser = async () => {
-      try {
-        const res = await api.get(`/users/${userId}`); // adjust endpoint if needed
-        setUser(res.data);
-      } catch (err) {
-        console.error("Failed to fetch user info:", err);
-      }
-    };
-
-    fetchUser();
-  }, [userId]);
+    api.get(`/users/${userId}`).then(res => setUser(res.data)).catch(console.error);
+  }, []);
 
   return (
-    <div className="bg-white shadow rounded-xl p-5 sticky top-20 flex flex-col gap-6">
-      <div>
-        <h3 className="font-semibold mb-3 text-gray-800">Trending Tags</h3>
-        <div className="space-y-2">
-          {["#AI", "#Fitness", "#Coding", "#Travel"].map((tag) => (
-            <p key={tag} className="text-blue-600 cursor-pointer hover:underline">{tag}</p>
+    <div className="flex flex-col gap-6 sticky top-24">
+      {/* Trending Card */}
+      <div className="bg-white border border-slate-100 shadow-sm rounded-2xl p-5">
+        <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+           <Hash size={18} className="text-indigo-500"/> Trending Now
+        </h3>
+        <div className="flex flex-wrap gap-2">
+          {["#AI", "#Fitness", "#Coding", "#Travel", "#React"].map(tag => (
+            <span key={tag} className="px-3 py-1.5 bg-slate-50 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg text-sm font-medium cursor-pointer transition-colors border border-slate-100">
+              {tag}
+            </span>
           ))}
         </div>
       </div>
 
+      {/* User Mini Profile */}
       {user && (
-        <div>
-          <h3 className="font-semibold mb-3 text-gray-800">You</h3>
-          <div className="flex items-center gap-3">
-            <img
-              src={user.imageURL || "https://www.gravatar.com/avatar?d=mp"}
-              className="w-10 h-10 rounded-full"
+        <div className="bg-white border border-slate-100 shadow-sm rounded-2xl p-5">
+          <div className="flex items-center gap-3 mb-3">
+            <img 
+              src={user.imageURL || "https://www.gravatar.com/avatar?d=mp"} 
+              className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-sm"
+              alt="Profile"
             />
-            <div>
-              <p className="font-medium text-gray-800">{user.name}</p>
-              <button onClick={() => navigate("/setting")} className="text-indigo-600 text-sm">Edit Profile</button>
+            <div className="overflow-hidden">
+              <p className="font-bold text-slate-800 truncate">{user.name}</p>
+              <p className="text-xs text-slate-500">View full profile</p>
             </div>
           </div>
+          <button 
+            onClick={() => navigate("/setting")} 
+            className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-lg transition-colors"
+          >
+            Edit Profile
+          </button>
         </div>
       )}
     </div>
   );
 }
 
-/* ================= COMPONENT ================= */
+/* ================= MAIN DASHBOARD ================= */
 export default function Dashboard() {
   const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
@@ -125,207 +105,265 @@ export default function Dashboard() {
   const [showComments, setShowComments] = useState<Record<string, boolean>>({});
   const [fullImage, setFullImage] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-
-  const getPreview = (text: string, limit = 120) => (text.length <= limit ? text : text.slice(0, limit) + "...");
+  const [showMoreTags, setShowMoreTags] = useState<Record<string, boolean>>({});
 
   const userId = localStorage.getItem("userId");
 
-  /* ================= API ================= */
-  const loadComments = async (postId: string) => {
-    try {
-      const res = await api.get(`/comments/${postId}`);
-      setComments((prev) => ({ ...prev, [postId]: res.data }));
-    } catch (err) {
-      console.error(err);
-    }
-  };
+  const getPreview = (t: string, l = 120) => t.length <= l ? t : t.slice(0, l) + "...";
 
-  const toggleComments = async (postId: string) => {
-    const current = showComments[postId];
-    if (!current) await loadComments(postId);
-    setShowComments((prev) => ({ ...prev, [postId]: !current }));
-  };
-
-  const handleAddComment = async (postId: string) => {
-    if (!commentText[postId]?.trim()) return;
-    try {
-      const res = await api.post(`/comments/${postId}`, { text: commentText[postId] });
-      setComments((prev) => ({ ...prev, [postId]: [res.data, ...(prev[postId] || [])] }));
-      setCommentText((prev) => ({ ...prev, [postId]: "" }));
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleLike = async (postId: string) => {
-    setPosts((prev) =>
-      prev.map((p) =>
-        p._id === postId
-          ? {
-              ...p,
-              likes: p.likes.includes(userId!) ? p.likes.filter((id) => id !== userId) : [...p.likes, userId!],
-            }
-          : p
-      )
-    );
-    try { await api.put(`/post/like/${postId}`); } catch (err) { console.error(err); }
-  };
-
-  const handleDeleteComment = async (postId: string, commentId: string) => {
-    try {
-      await api.delete(`/comments/${commentId}`);
-      setComments((prev) => ({ ...prev, [postId]: prev[postId].filter((c) => c._id !== commentId) }));
-    } catch (err) { console.error(err); alert("Failed to delete comment"); }
-  };
-
-  /* ================= LOAD POSTS ================= */
+  /* LOAD POSTS & HIDE OWN POSTS */
   useEffect(() => {
-    const load = async () => {
+    const fetchData = async () => {
       try {
-        const action = await dispatch(fetchPosts());
-        const result = unwrapResult(action);
-        setPosts(result);
-      } catch (err) { console.error("Fetch error:", err); }
+        const res = unwrapResult(await dispatch(fetchPosts()));
+        const filtered = res.filter((p: Post) => p.owner._id !== userId); 
+        setPosts(filtered);
+      } catch (e) { console.log(e); }
     };
-    load();
+    fetchData();
   }, []);
 
-  /* ================= UI ================= */
+  const loadComments = async (id: string) => {
+    const res = await api.get(`/comments/${id}`);
+    setComments(p => ({ ...p, [id]: res.data }));
+  };
+
+  const toggleComments = async (id: string) => {
+    if (!showComments[id]) await loadComments(id);
+    setShowComments(p => ({ ...p, [id]: !p[id] }));
+  };
+
+  const addComment = async (id: string) => {
+    if (!commentText[id]?.trim()) return;
+    const res = await api.post(`/comments/${id}`, { text: commentText[id] });
+    setComments(p => ({ ...p, [id]: [res.data, ...(p[id] || [])] }));
+    setCommentText(p => ({ ...p, [id]: "" }));
+  };
+
+  const like = async (id: string) => {
+    setPosts(p => p.map(x => x._id === id ? { ...x, likes: x.likes.includes(userId!) ? x.likes.filter(a => a !== userId) : [...x.likes, userId!] } : x));
+    await api.put(`/post/like/${id}`);
+  };
+
+  const deleteComment = async (pid: string, cid: string) => {
+    await api.delete(`/comments/${cid}`);
+    setComments(p => ({ ...p, [pid]: p[pid].filter(c => c._id !== cid) }));
+  };
+
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans">
+
       <Header handleLogout={() => {
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
+        localStorage.clear();
         window.location.href = "/login";
       }} />
 
-      <div className="flex max-w-6xl mx-auto gap-6 py-10 px-2">
-        {/* Left Sidebar */}
-        <div className="hidden md:block w-64"><LeftSidebar /></div>
+      <div className="flex max-w-7xl mx-auto gap-8 py-8 px-4 sm:px-6">
 
-        {/* Feed */}
-        <main className="flex-1 max-w-2xl">
-          {/* <h1 className="text-3xl font-bold mb-6 text-gray-800">Latest Posts</h1> */}
+        {/* Left Sidebar (Desktop) */}
+        <div className="hidden lg:block w-72 flex-shrink-0">
+          <LeftSidebar />
+        </div>
 
-          {posts.map((post) => (
-            <div key={post._id} className="bg-white rounded-2xl shadow p-4 mb-6">
+        {/* Main Feed */}
+        <main className="flex-1 max-w-2xl mx-auto w-full">
+          
+          {posts.length === 0 && (
+             <div className="text-center py-20 opacity-50">
+                <p>No posts found. Follow some people to get started!</p>
+             </div>
+          )}
 
-              {/* Post Header */}
-              <div className="flex items-center gap-3 mb-3">
-                <img src={post.owner.imageURL || "https://www.gravatar.com/avatar?d=mp"} className="w-11 h-11 rounded-full" />
-                <div>
-                  <p className="font-semibold text-gray-800">{post.owner.name}</p>
-                  <p className="text-sm text-gray-500">{new Date(post.createdAt).toLocaleString()}</p>
-                </div>
-              </div>
+          {posts.map(post => {
+            const isLiked = post.likes.includes(userId!);
+            
+            return (
+              <div key={post._id} className="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow duration-300 mb-6 overflow-hidden">
 
-              {/* Description */}
-              <div className="mb-3 prose prose-sm max-w-none whitespace-pre-line text-gray-800">
-                <ReactMarkdown>
-                  {expanded[post._id] ? post.description : getPreview(post.description)}
-                </ReactMarkdown>
-              </div>
-              {post.description.length > 120 && (
-                <button
-                  onClick={() => setExpanded((prev) => ({ ...prev, [post._id]: !prev[post._id] }))}
-                  className="text-indigo-600 text-sm font-medium hover:underline mb-3"
-                >
-                  {expanded[post._id] ? "Show less" : "Read more"}
-                </button>
-              )}
-
-              {/* Post Image */}
-              {post.imageURL && (
-                <img
-                  src={post.imageURL}
-                  className="w-full rounded-xl max-h-96 object-cover cursor-pointer"
-                  onClick={() => setFullImage(post.imageURL || null)}
-                />
-              )}
-
-              {/* Tags */}
-              <div className="flex flex-wrap gap-2 mt-3">
-                {post.tags.map((tag) => (
-                  <span key={tag} className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm">
-                    #{tag}
-                  </span>
-                ))}
-              </div>
-
-              {/* Actions */}
-              <div className="flex justify-between border-t mt-4 pt-3">
-                <button
-                  onClick={() => handleLike(post._id)}
-                  className={`flex items-center gap-1 transition-transform ${post.likes.includes(userId!) ? "text-red-500 scale-125" : "text-gray-600 scale-100"}`}
-                >
-                  <Heart size={18} className={post.likes.includes(userId!) ? "fill-red-500" : ""} /> {post.likes.length}
-                </button>
-                <button onClick={() => toggleComments(post._id)} className="flex items-center gap-1 hover:text-blue-600">
-                  <MessageCircle size={18} /> Comment
-                </button>
-                <button onClick={() => navigate("/message", { state: { receiverId: post.owner._id, receiverName: post.owner.name, receiverAvatar: post.owner.imageURL } })} className="flex items-center gap-1 hover:text-indigo-600">
-                  <Send size={18} /> Chat
-                </button>
-              </div>
-
-              {/* COMMENTS */}
-              {showComments[post._id] && (
-                <div className="mt-4 max-h-64 overflow-y-auto space-y-2">
-                  {comments[post._id]?.map((c) => (
-                    <div key={c._id} className="flex gap-2 group relative">
-                      <img src={c.user.imageURL || "https://www.gravatar.com/avatar?d=mp"} className="w-8 h-8 rounded-full" />
-                      <div className="bg-gray-100 px-3 py-2 rounded w-full relative">
-                        <p className="font-semibold text-sm">{c.user.name}</p>
-                        <p className="text-sm">{c.text}</p>
-                        {c.user._id === userId && (
-                          <button onClick={() => handleDeleteComment(post._id, c._id)} className="absolute top-2 right-2 text-red-500 hover:underline text-xs">
-                            <Trash size={12} />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-
-                  {/* Add Comment */}
-                  <div className="flex items-center gap-3 mt-2 bg-gray-50 rounded-full px-3 py-2 focus-within:ring-2 focus-within:ring-indigo-500">
-                    <img src="https://www.gravatar.com/avatar?d=mp" className="w-8 h-8 rounded-full" />
-                    <input
-                      value={commentText[post._id] || ""}
-                      onChange={(e) => setCommentText((prev) => ({ ...prev, [post._id]: e.target.value }))}
-                      placeholder="Write a comment..."
-                      className="flex-1 bg-transparent outline-none text-sm text-gray-800"
-                      onKeyDown={(e) => e.key === "Enter" && handleAddComment(post._id)}
+                {/* Post Header */}
+                <div className="flex items-center justify-between p-4 pb-3">
+                  <div className="flex items-center gap-3">
+                    <img 
+                      src={post.owner.imageURL || "https://www.gravatar.com/avatar?d=mp"} 
+                      className="w-10 h-10 rounded-full object-cover border border-slate-100 cursor-pointer hover:opacity-90"
+                      alt={post.owner.name}
                     />
-                    <button
-                      disabled={!commentText[post._id]?.trim()}
-                      onClick={() => handleAddComment(post._id)}
-                      className={`text-indigo-600 font-semibold transition ${!commentText[post._id]?.trim() ? "opacity-40 cursor-not-allowed" : "hover:text-indigo-700"}`}
+                    <div>
+                      <h4 className="font-bold text-slate-900 leading-tight hover:underline cursor-pointer">{post.owner.name}</h4>
+                      <p className="text-xs text-slate-500 font-medium mt-0.5">
+                        {new Date(post.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' })}
+                      </p>
+                    </div>
+                  </div>
+                  <button className="text-slate-400 hover:text-slate-600 hover:bg-slate-50 p-2 rounded-full transition-colors">
+                    <MoreHorizontal size={20} />
+                  </button>
+                </div>
+
+                {/* Description */}
+                <div className="px-4 pb-2 text-slate-700 leading-relaxed text-[15px]">
+                  <ReactMarkdown 
+                    components={{
+                      p: ({node, ...props}) => <p className="mb-2" {...props} />,
+                      a: ({node, ...props}) => <a className="text-indigo-600 hover:underline" {...props} />
+                    }}
+                  >
+                    {expanded[post._id] ? post.description : getPreview(post.description)}
+                  </ReactMarkdown>
+                  
+                  {post.description.length > 120 && (
+                    <button 
+                      onClick={() => setExpanded(p => ({ ...p, [post._id]: !p[post._id] }))}
+                      className="text-indigo-600 text-sm font-semibold hover:text-indigo-700 mt-1"
                     >
-                      Post
+                      {expanded[post._id] ? "Show less" : "Read more"}
+                    </button>
+                  )}
+                </div>
+
+                {/* Image */}
+                {post.imageURL && (
+                  <div className="mt-2 bg-slate-100 cursor-pointer relative group" onClick={() => setFullImage(post.imageURL ?? null)}>
+                    <img src={post.imageURL} className="w-full h-auto max-h-[500px] object-cover" alt="Post content"/>
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors flex items-center justify-center"></div>
+                  </div>
+                )}
+
+                {/* Tags */}
+                {post.tags.length > 0 && (
+                  <div className="px-4 pt-3 flex flex-wrap gap-2">
+                    {(showMoreTags[post._id] ? post.tags : post.tags.slice(0, 5)).map(tag => (
+                      <span key={tag} className="px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-md text-xs font-semibold tracking-wide">
+                        #{tag}
+                      </span>
+                    ))}
+                    {post.tags.length > 5 && (
+                      <button onClick={() => setShowMoreTags(p => ({ ...p, [post._id]: !p[post._id] }))} className="text-slate-500 text-xs font-medium hover:text-indigo-600">
+                        {showMoreTags[post._id] ? "Less" : `+${post.tags.length - 5} more`}
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Action Bar */}
+                <div className="px-2 py-2 mt-2 border-t border-slate-50 flex items-center justify-between">
+                  <div className="flex items-center gap-1">
+                    <button 
+                      onClick={() => like(post._id)} 
+                      className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${isLiked ? "text-rose-500 bg-rose-50" : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"}`}
+                    >
+                      <Heart size={20} className={`transition-transform duration-300 ${isLiked ? "fill-rose-500 scale-110" : ""}`} /> 
+                      <span className="font-semibold text-sm">{post.likes.length > 0 ? post.likes.length : "Like"}</span>
+                    </button>
+
+                    <button 
+                      onClick={() => toggleComments(post._id)} 
+                      className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${showComments[post._id] ? "text-indigo-600 bg-indigo-50" : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"}`}
+                    >
+                      <MessageCircle size={20} /> 
+                      <span className="font-semibold text-sm">Comment</span>
                     </button>
                   </div>
-                </div>
-              )}
 
-              {/* Full Image Modal */}
-              {fullImage && (
-                <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50" onClick={() => setFullImage(null)}>
-                  <div className="relative max-w-4xl w-full p-4" onClick={(e) => e.stopPropagation()}>
-                    <img src={fullImage} className="w-full max-h-[90vh] object-contain rounded-lg" />
-                    <button className="absolute top-3 right-3 bg-white text-black px-4 py-1 rounded-full text-sm font-semibold shadow hover:bg-gray-200" onClick={() => setFullImage(null)}>Close</button>
+                  <button 
+                    onClick={() => navigate("/message", { state: { receiverId: post.owner._id, receiverName: post.owner.name, receiverAvatar: post.owner.imageURL } })}
+                    className="flex items-center gap-2 px-3 py-2 text-slate-500 hover:bg-slate-50 hover:text-indigo-600 rounded-lg transition-all"
+                  >
+                    <Send size={20} />
+                  </button>
+                </div>
+
+                {/* Comment Section */}
+                {showComments[post._id] && (
+                  <div className="bg-slate-50/50 p-4 border-t border-slate-100 animate-in slide-in-from-top-2 duration-200">
+                    
+                    {/* Add Comment Input */}
+                    <div className="flex items-center gap-3 mb-5">
+                       {/* Optional: Show current user avatar here if available in redux/context */}
+                      <div className="relative flex-1">
+                        <input 
+                          value={commentText[post._id] || ""}
+                          onChange={e => setCommentText(p => ({ ...p, [post._id]: e.target.value }))}
+                          onKeyDown={e => e.key === "Enter" && addComment(post._id)}
+                          placeholder="Write a thoughtful comment..."
+                          className="w-full bg-white border border-slate-200 text-slate-800 text-sm rounded-full py-2.5 px-4 pl-4 pr-12 outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 transition-all shadow-sm"
+                        />
+                        <button 
+                          disabled={!commentText[post._id]?.trim()}
+                          onClick={() => addComment(post._id)}
+                          className="absolute right-2 top-1.5 p-1.5 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors shadow-sm"
+                        >
+                          <Send size={14} className="ml-0.5"/>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Comments List */}
+                    <div className="space-y-4 max-h-80 overflow-y-auto pr-1 custom-scrollbar">
+                      {comments[post._id]?.map(c => (
+                        <div key={c._id} className="flex gap-3 group">
+                          <img src={c.user.imageURL || "https://www.gravatar.com/avatar?d=mp"} className="w-8 h-8 rounded-full object-cover mt-1"/>
+                          <div className="flex-1">
+                            <div className="bg-white p-3 rounded-2xl rounded-tl-none border border-slate-200 shadow-sm relative group-hover:border-indigo-100 transition-colors">
+                              <div className="flex justify-between items-start mb-1">
+                                <span className="font-bold text-xs text-slate-900">{c.user.name}</span>
+                                {c.user._id === userId && (
+                                  <button onClick={() => deleteComment(post._id, c._id)} className="text-slate-300 hover:text-rose-500 transition-colors">
+                                    <Trash size={13} />
+                                  </button>
+                                )}
+                              </div>
+                              <p className="text-sm text-slate-700 leading-snug">{c.text}</p>
+                            </div>
+                            <span className="text-[10px] text-slate-400 font-medium ml-1 mt-1 block">
+                              {new Date(c.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                      {!comments[post._id]?.length && (
+                         <p className="text-center text-xs text-slate-400 py-2">No comments yet. Be the first!</p>
+                      )}
+                    </div>
+
                   </div>
-                </div>
-              )}
-
-            </div>
-          ))}
+                )}
+              </div>
+            );
+          })}
         </main>
 
-        {/* Right Sidebar */}
-        <div className="hidden lg:block w-72"><RightSidebar /></div>
+        {/* Right Sidebar (Desktop) */}
+        <div className="hidden xl:block w-80 flex-shrink-0">
+          <RightSidebar />
+        </div>
+
       </div>
 
       <Footer />
+
+      {/* Full Image Modal */}
+      {fullImage && (
+        <div 
+          className="fixed inset-0 bg-slate-900/90 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-200" 
+          onClick={() => setFullImage(null)}
+        >
+          <div className="relative max-w-5xl w-full flex justify-center" onClick={e => e.stopPropagation()}>
+             <button 
+              onClick={() => setFullImage(null)}
+              className="absolute -top-12 right-0 md:right-auto md:absolute md:-right-12 text-white/70 hover:text-white hover:scale-110 transition-all"
+            >
+              <X size={32} />
+            </button>
+            <img 
+              src={fullImage} 
+              className="w-auto h-auto max-h-[90vh] max-w-full rounded-lg shadow-2xl"
+              alt="Full view"
+            />
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
