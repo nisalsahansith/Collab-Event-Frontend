@@ -9,16 +9,16 @@ import Footer from "../components/Footer";
 import { Heart, MessageCircle, Send, Trash, Home, Plus, User, Settings, X, Hash, MoreHorizontal } from "lucide-react";
 import api from "../services/api";
 import ReactMarkdown from "react-markdown";
+import toast, { Toaster } from "react-hot-toast";
 
 /* ================= TYPES ================= */
 interface User { _id: string; name: string; imageURL?: string; }
 interface Comment { _id: string; text: string; createdAt: string; user: User; }
-interface Post { _id: string; description: string; tags: string[]; imageURL?: string; likes: string[]; owner: User; createdAt: string; }
+interface Post { _id: string; description: string; tags: string[]; imageURL?: string; likes: string[]; owner: User; createdAt: string; reports?: any[]; }
 
 /* ================= SIDEBAR LEFT ================= */
 function LeftSidebar() {
   const navigate = useNavigate();
-  
   const NavItem = ({ icon: Icon, label, path }: { icon: any, label: string, path: string }) => (
     <button 
       onClick={() => navigate(path)} 
@@ -106,6 +106,11 @@ export default function Dashboard() {
   const [fullImage, setFullImage] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [showMoreTags, setShowMoreTags] = useState<Record<string, boolean>>({});
+
+  // Report modal states
+  const [reportingPost, setReportingPost] = useState<Post | null>(null);
+  const [reportReason, setReportReason] = useState("");
+  const [reportLoading, setReportLoading] = useState(false);
 
   const userId = localStorage.getItem("userId");
 
@@ -195,7 +200,12 @@ export default function Dashboard() {
                       </p>
                     </div>
                   </div>
-                  <button className="text-slate-400 hover:text-slate-600 hover:bg-slate-50 p-2 rounded-full transition-colors">
+                  
+                  {/* 3 Dots Report Button */}
+                  <button
+                    onClick={() => setReportingPost(post)}
+                    className="text-slate-400 hover:text-slate-600 hover:bg-slate-50 p-2 rounded-full transition-colors"
+                  >
                     <MoreHorizontal size={20} />
                   </button>
                 </div>
@@ -210,7 +220,6 @@ export default function Dashboard() {
                   >
                     {expanded[post._id] ? post.description : getPreview(post.description)}
                   </ReactMarkdown>
-                  
                   {post.description.length > 120 && (
                     <button 
                       onClick={() => setExpanded(p => ({ ...p, [post._id]: !p[post._id] }))}
@@ -276,10 +285,7 @@ export default function Dashboard() {
                 {/* Comment Section */}
                 {showComments[post._id] && (
                   <div className="bg-slate-50/50 p-4 border-t border-slate-100 animate-in slide-in-from-top-2 duration-200">
-                    
-                    {/* Add Comment Input */}
                     <div className="flex items-center gap-3 mb-5">
-                       {/* Optional: Show current user avatar here if available in redux/context */}
                       <div className="relative flex-1">
                         <input 
                           value={commentText[post._id] || ""}
@@ -298,7 +304,6 @@ export default function Dashboard() {
                       </div>
                     </div>
 
-                    {/* Comments List */}
                     <div className="space-y-4 max-h-80 overflow-y-auto pr-1 custom-scrollbar">
                       {comments[post._id]?.map(c => (
                         <div key={c._id} className="flex gap-3 group">
@@ -325,7 +330,6 @@ export default function Dashboard() {
                          <p className="text-center text-xs text-slate-400 py-2">No comments yet. Be the first!</p>
                       )}
                     </div>
-
                   </div>
                 )}
               </div>
@@ -360,6 +364,64 @@ export default function Dashboard() {
               className="w-auto h-auto max-h-[90vh] max-w-full rounded-lg shadow-2xl"
               alt="Full view"
             />
+          </div>
+        </div>
+      )}
+       <div>
+      <Toaster position="top-right" reverseOrder={false} />
+      {/* Rest of your Dashboard JSX */}
+    </div>
+
+      {/* Report Post Modal */}
+      {reportingPost && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4"
+          onClick={() => setReportingPost(null)}
+        >
+          <div
+            className="bg-white rounded-xl max-w-md w-full p-6 relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-bold mb-3">Report Post</h3>
+            <p className="text-sm text-slate-600 mb-4">
+              Why do you want to report this post by <strong>{reportingPost.owner.name}</strong>?
+            </p>
+            
+            <textarea
+              value={reportReason}
+              onChange={(e) => setReportReason(e.target.value)}
+              placeholder="Enter your reason..."
+              className="w-full border border-slate-200 rounded-lg p-3 resize-none h-24 focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 mb-4"
+            />
+
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setReportingPost(null)}
+                className="py-2 px-4 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-100 transition"
+              >
+                Cancel
+              </button>
+
+              <button
+                disabled={reportLoading || !reportReason.trim()}
+                onClick={async () => {
+                  try {
+                    setReportLoading(true);
+                    await api.post(`/reports/post/${reportingPost._id}`, { reason: reportReason });
+                    toast.success("Post reported successfully!");
+                    setReportingPost(null);
+                    setReportReason("");
+                  } catch (err: any) {
+                    toast.error(err.response?.data?.msg || "Failed to report post");
+                  } finally {
+                    setReportLoading(false);
+                  }
+                }}
+                className="py-2 px-4 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              >
+                {reportLoading ? "Reporting..." : "Report"}
+              </button>
+            </div>
           </div>
         </div>
       )}

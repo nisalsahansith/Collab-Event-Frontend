@@ -9,6 +9,9 @@ import CreatePost from '../pages/CreateAPost';
 import MessengerUI from '../pages/Message';
 import ProfilePage from '../pages/ProfilePage';
 import SettingsPage from '../pages/Setting';
+import ForgotPassword from '../pages/ForgotPassword';
+import ResetPassword from '../pages/ResetPassword';
+import VerifyOtp from '../pages/VerifyOtp';
 
 const AppRoutes = () => (
   <Routes>
@@ -21,6 +24,10 @@ const AppRoutes = () => (
     <Route path='/message' element={<MessengerUI />} />
     <Route path='/myprofile' element={<ProfilePage />} />
     <Route path='/setting' element={<SettingsPage />} />
+    <Route path="/forgot-password" element={<ForgotPassword />} />
+    <Route path="/verify-otp" element={<VerifyOtp />} />
+    <Route path="/reset-password" element={<ResetPassword />} />
+
   </Routes>
 );
 

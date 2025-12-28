@@ -6,7 +6,7 @@ import { useDispatch } from "react-redux";
 import { createEvent } from "../redux/events/eventAction";
 import type { AppDispatch } from "../redux/store";
 import api from "../services/api";
-import toast from "react-hot-toast";
+import toast, { Toaster } from "react-hot-toast";
 
 export default function CreatePost() {
   const { logout } = useAuth();
@@ -184,6 +184,11 @@ export default function CreatePost() {
                 ))}
               </div>
             </div>
+            
+             <div>
+              <Toaster position="top-right" reverseOrder={false} />
+              {/* Rest of your Dashboard JSX */}
+            </div>
 
             {/* IMAGE */}
             <div>
@@ -230,4 +235,5 @@ export default function CreatePost() {
       <Footer />
     </div>
   );
+
 }
