@@ -34,8 +34,14 @@ export default function Login() {
         const resData: any = await getMyDetails();
         setUser(resData.data);
 
-        toast.success("Welcome back! 🚀");
-        setTimeout(() => navigate("/dashboard"), 800);
+        if (data.data.roles[0] === "ADMIN" || data.data.roles[0] === 'admin') {
+          toast.success("Welcome back! 🚀");
+          setTimeout(() => navigate("/admin-dashboard"), 800);
+        } else if (data.data.roles[0] === "USER" || data.data.roles[0] === 'user') {
+          toast.success("Welcome back! 🚀");
+          setTimeout(() => navigate("/dashboard"), 800);
+        }
+
       } else {
         toast.error("Invalid credentials.");
       }

@@ -12,6 +12,11 @@ import SettingsPage from '../pages/Setting';
 import ForgotPassword from '../pages/ForgotPassword';
 import ResetPassword from '../pages/ResetPassword';
 import VerifyOtp from '../pages/VerifyOtp';
+import AdminDashboard from '../pages/AdminDashboard';
+import UsersPage from '../pages/UserMAnagement';
+import AdminReports from '../pages/AdminReports';
+import AdminPostsPage from '../pages/AdminPostPage';
+import AdminSettings from '../pages/AdminSettingPage';
 
 const AppRoutes = () => (
   <Routes>
@@ -27,7 +32,11 @@ const AppRoutes = () => (
     <Route path="/forgot-password" element={<ForgotPassword />} />
     <Route path="/verify-otp" element={<VerifyOtp />} />
     <Route path="/reset-password" element={<ResetPassword />} />
-
+    <Route path='/admin-dashboard' element={<AdminDashboard />} />
+    <Route path='/user-manage' element={<UsersPage />} />
+    <Route path='/admin-report' element={<AdminReports />} />
+    <Route path='admin-posts' element={<AdminPostsPage />} />
+    <Route path='/admin-setting' element={<AdminSettings />} />
   </Routes>
 );
 
