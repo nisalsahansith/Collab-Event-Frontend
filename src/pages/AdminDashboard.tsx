@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import api from "../services/api"; // Ensure this path matches your project structure
 import toast, { Toaster } from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
 import { 
   LayoutDashboard, Users, FileText, AlertTriangle, 
   Activity, Settings, LogOut, Search, Bell, 
@@ -8,11 +9,11 @@ import {
 } from "lucide-react";
 
 // --- PAGE IMPORTS ---
-// Check that these filenames match exactly what you saved in your /pages folder
 import UsersPage from "../pages/UserMAnagement";        // Previously "UserMAnagement"
 import PostPage from "../pages/AdminPostPage";     // Previously "AdminPostPage"
 import ReportPage from "../pages/AdminReports";    // Previously "AdminReports"
-import AdminSettings from "../pages/AdminSettingPage"; // Previously "AdminSettingPage"
+import AdminSettings from "../pages/AdminSettingPage"; // Previously "AdminSettingPag
+import AdminAnalytics from "../pages/Analytics";
 
 // --- TYPES ---
 interface Stats {
@@ -51,15 +52,40 @@ function DashboardOverview() {
     try {
       setLoading(true);
       
-      // 
-      // Fetching stats and latest reports in parallel
+      // Fetching stats and ALL reports in parallel
       const [res1, res2] = await Promise.all([
-        api.get("/admin/stats"),         // Endpoint for numeric stats
-        api.get("/admin/reports/latest") // Endpoint for recent report list
+        api.get("/admin/stats"),         
+        api.get("/admin/reports") // CHANGED: Using /reports to get ALL data
       ]);
 
       setStats(res1.data || { users: 0, posts: 0, reports: 0, activeToday: 0 });
-      setReports(res2.data?.reports || []);
+
+      // --- PROCESS & FLATTEN REPORTS ---
+      // The /reports endpoint returns posts with nested reports. We need to flatten them.
+      const postsData = res2.data || [];
+      const allReports: Report[] = [];
+
+      if (Array.isArray(postsData)) {
+        postsData.forEach((post: any) => {
+          if (Array.isArray(post.reports)) {
+            post.reports.forEach((r: any, idx: number) => {
+              allReports.push({
+                _id: `${post._id}_${idx}`, // Generate unique key
+                reason: r.reason,
+                status: r.status || "pending",
+                date: r.date,
+                user: r.userId, // The reporter
+                post: { _id: post._id } // The target post
+              });
+            });
+          }
+        });
+      }
+
+      // --- SORT BY DATE (LATEST FIRST) ---
+      allReports.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+      setReports(allReports);
       
     } catch (err) {
       console.error(err);
@@ -113,10 +139,10 @@ function DashboardOverview() {
         />
       </div>
 
-      {/* Recent Reports Table */}
+      {/* Reports Table Section */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
         <div className="px-6 py-5 border-b border-slate-100 flex justify-between items-center">
-          <h3 className="font-bold text-slate-800 text-lg">Recent Reports</h3>
+          <h3 className="font-bold text-slate-800 text-lg">All Reports</h3>
           <button className="flex items-center gap-2 px-3 py-1.5 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50">
             <Filter size={14} /> Filter
           </button>
@@ -131,14 +157,14 @@ function DashboardOverview() {
                 <th className="px-6 py-4">Reason</th>
                 <th className="px-6 py-4">Date</th>
                 <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4 text-right">Action</th>
+                {/* <th className="px-6 py-4 text-right">Action</th> */}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {reports.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-16 text-center text-slate-400">
-                     No recent reports found.
+                     No reports found.
                   </td>
                 </tr>
               ) : (
@@ -164,11 +190,11 @@ function DashboardOverview() {
                     <td className="px-6 py-4">
                        <StatusBadge status={r.status || "Pending"} />
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    {/* <td className="px-6 py-4 text-right">
                       <button className="text-indigo-600 hover:text-indigo-800 font-medium text-sm hover:bg-indigo-50 px-3 py-1.5 rounded-lg transition-colors">
                         Review
                       </button>
-                    </td>
+                    </td> */}
                   </tr>
                 ))
               )}
@@ -183,8 +209,16 @@ function DashboardOverview() {
 // --- MAIN LAYOUT COMPONENT ---
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("Dashboard");
+  const navigate = useNavigate();
 
-  // Navigation Logic - This switches the main content area
+  const handleLogout = () => {
+    localStorage.removeItem("token"); // Or whatever key you use
+    localStorage.removeItem("user");
+    navigate("/login");
+    toast.success("Logged out successfully");
+  };
+
+  // Navigation Logic
   const renderContent = () => {
     switch (activeTab) {
       case "Dashboard":
@@ -198,7 +232,7 @@ export default function AdminDashboard() {
       case "Settings":
         return <AdminSettings />;
       case "Analytics":
-        return <div className="text-center p-10 text-slate-500">Analytics Module Coming Soon</div>;
+        return <AdminAnalytics />;
       default:
         return <DashboardOverview />;
     }
@@ -210,7 +244,6 @@ export default function AdminDashboard() {
 
       {/* SIDEBAR */}
       <aside className="w-72 bg-slate-900 text-slate-300 flex flex-col fixed h-full z-20 shadow-xl">
-        {/* Brand */}
         <div className="h-20 flex items-center px-8 border-b border-slate-800">
           <div className="flex items-center gap-2 text-white">
             <div className="bg-indigo-600 p-1.5 rounded-lg">
@@ -220,7 +253,6 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Navigation */}
         <nav className="flex-1 px-4 py-6 space-y-1">
           <SidebarItem 
             icon={LayoutDashboard} 
@@ -254,15 +286,17 @@ export default function AdminDashboard() {
           />
         </nav>
 
-        {/* Bottom Actions */}
         <div className="p-4 border-t border-slate-800">
           <SidebarItem 
             icon={Settings} 
             label="Settings" 
-            active={activeTab === "Settings"}
+            active={activeTab === "Settings"} 
             onClick={() => setActiveTab("Settings")} 
           />
-          <button className="flex items-center gap-3 px-4 py-3 w-full text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-xl transition-all duration-200 mt-1 group">
+          <button 
+            onClick={handleLogout}
+            className="flex items-center gap-3 px-4 py-3 w-full text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-xl transition-all duration-200 mt-1 group"
+          >
             <LogOut size={20} className="group-hover:translate-x-1 transition-transform" />
             <span className="font-medium">Logout</span>
           </button>
@@ -274,7 +308,6 @@ export default function AdminDashboard() {
         
         {/* TOPBAR */}
         <header className="h-20 bg-white border-b border-slate-200 sticky top-0 z-10 px-8 flex justify-between items-center shadow-sm">
-          {/* Search */}
           <div className="relative w-96">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <input 
@@ -283,7 +316,6 @@ export default function AdminDashboard() {
             />
           </div>
 
-          {/* Right Actions */}
           <div className="flex items-center gap-6">
             <button className="relative p-2 text-slate-500 hover:bg-slate-50 rounded-full transition-colors">
               <Bell size={20} />

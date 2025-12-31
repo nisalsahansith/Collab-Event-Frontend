@@ -1,21 +1,22 @@
 import { useEffect, useState } from "react";
 import api from "../services/api"; // your axios instance
-import { toast } from "react-hot-toast";
+import { toast } from "react-hot-toast"; // Using react-hot-toast
 import { 
-  Search, Filter, MoreVertical, Trash2, 
+  Search, Filter, Trash2, 
   Ban, CheckCircle, Eye, Shield, ShieldAlert,
   Loader2, User as UserIcon
 } from "lucide-react";
 
 interface IUser {
+  roles: string;
   _id: string;
   name: string;
   email: string;
   role: string;
-  banned: boolean;
-  status?: string;
+  banned: boolean; 
+  status: string;
   image?: string;
-  imageURL?: string; // Handling both potential property names
+  imageURL?: string; 
 }
 
 export default function UsersPage() {
@@ -32,9 +33,16 @@ export default function UsersPage() {
     try {
       setLoading(true);
       const res = await api.get("/admin/users");
-      // Safe access in case response structure varies
-      const data = Array.isArray(res.data) ? res.data : res.data.users || [];
-      setUsers(data);
+      const rawData = Array.isArray(res.data) ? res.data : res.data.users || [];
+      
+      const mappedData = rawData.map((u: any) => ({
+        ...u,
+        banned: u.status === 'banned', 
+        status: u.status || (u.banned ? 'banned' : 'active'),
+        roles: Array.isArray(u.roles) ? u.roles[0] : u.roles 
+      }));
+
+      setUsers(mappedData);
     } catch (e) {
       console.error(e);
       toast.error("Failed to load users");
@@ -43,26 +51,88 @@ export default function UsersPage() {
     }
   };
 
-  const handleBanToggle = async (id: string, banned: boolean) => {
+  const handleBanToggle = async (id: string, currentBannedStatus: boolean) => {
+    // Show a loading toast while processing
+    const toastId = toast.loading("Updating user status...");
+    
     try {
-      await api.patch(`/admin/users/${id}/toggle-ban`);
-      toast.success(banned ? "User Access Restored" : "User Suspended");
-      // Optimistic update or refetch
-      setUsers(users.map(u => u._id === id ? { ...u, banned: !banned } : u));
+      await api.patch(`/admin/users/${id}/toggle-status`);
+      
+      // Update the loading toast to success
+      toast.success(currentBannedStatus ? "User Access Restored" : "User Suspended", { id: toastId });
+      
+      setUsers(users.map(u => {
+        if (u._id === id) {
+          const newBannedState = !currentBannedStatus;
+          return { 
+            ...u, 
+            banned: newBannedState,
+            status: newBannedState ? 'banned' : 'active'
+          };
+        }
+        return u;
+      }));
     } catch {
-      toast.error("Action failed");
+      // Update the loading toast to error
+      toast.error("Failed to update status", { id: toastId });
     }
   };
 
-  const deleteUser = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this user permanently? This action cannot be undone.")) return;
+  // --- DELETE LOGIC ---
+
+  // 1. The actual API call (executes only after confirmation)
+  const performDelete = async (id: string) => {
+    const toastId = toast.loading("Deleting user...");
     try {
       await api.delete(`/admin/users/${id}`);
-      toast.success("User account deleted");
-      setUsers(users.filter(u => u._id !== id));
+      toast.success("User account deleted permanently", { id: toastId });
+      setUsers(prev => prev.filter(u => u._id !== id));
     } catch {
-      toast.error("Failed to delete user");
+      toast.error("Failed to delete user", { id: toastId });
     }
+  };
+
+  // 2. The Trigger (Shows the custom confirmation toast)
+  const deleteUser = (id: string) => {
+    toast((t) => (
+      <div className="flex flex-col gap-2 p-1">
+        <div className="flex items-center gap-2">
+           <div className="bg-rose-100 p-2 rounded-full text-rose-600">
+             <Trash2 size={16} />
+           </div>
+           <div>
+             <p className="font-semibold text-sm text-slate-800">Delete User?</p>
+             <p className="text-xs text-slate-500">This action cannot be undone.</p>
+           </div>
+        </div>
+        
+        <div className="flex gap-2 mt-2 ml-10">
+          <button 
+            onClick={() => {
+              toast.dismiss(t.id); // Close the confirm toast
+              performDelete(id);   // Run the delete logic
+            }}
+            className="bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded text-xs font-semibold transition-colors"
+          >
+            Yes, Delete
+          </button>
+          <button 
+            onClick={() => toast.dismiss(t.id)}
+            className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded text-xs font-semibold transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    ), {
+      duration: 5000, // Wait 5s for user response before auto-closing
+      position: "top-center",
+      style: {
+        border: '1px solid #f1f5f9',
+        padding: '12px',
+        color: '#334155',
+      },
+    });
   };
 
   const filteredUsers = users
@@ -123,7 +193,6 @@ export default function UsersPage() {
               <option value="banned">Banned Accounts</option>
               <option value="admin">Administrators</option>
             </select>
-            {/* Custom chevron for select */}
             <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
                <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 1L5 5L9 1"/></svg>
             </div>
@@ -159,7 +228,7 @@ export default function UsersPage() {
                   <td colSpan={4} className="px-6 py-16 text-center">
                     <div className="flex flex-col items-center justify-center gap-3 text-slate-400">
                       <div className="bg-slate-50 p-4 rounded-full">
-                         <UserIcon size={32} />
+                          <UserIcon size={32} />
                       </div>
                       <p className="text-sm font-medium">No users found matching your criteria.</p>
                       <button 
@@ -193,15 +262,15 @@ export default function UsersPage() {
                     {/* Role Column */}
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
-                         {u.role === 'admin' ? (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-purple-50 text-purple-700 border border-purple-100">
-                               <Shield size={12} fill="currentColor" /> Admin
-                            </span>
-                         ) : (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">
-                               User
-                            </span>
-                         )}
+                          {u.roles === 'ADMIN' ? (
+                             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-purple-50 text-purple-700 border border-purple-100">
+                                <Shield size={12} fill="currentColor" /> Admin
+                             </span>
+                          ) : (
+                             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                                User
+                             </span>
+                          )}
                       </div>
                     </td>
 
@@ -230,7 +299,7 @@ export default function UsersPage() {
                             className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
                             title="View Details"
                         >
-                           <Eye size={18} />
+                            <Eye size={18} />
                         </button>
 
                         <button
@@ -262,15 +331,14 @@ export default function UsersPage() {
           </table>
         </div>
         
-        {/* Pagination Footer (Static for now, but good for UI completeness) */}
         {!loading && filteredUsers.length > 0 && (
-           <div className="px-6 py-4 border-t border-slate-200 bg-slate-50/50 flex justify-between items-center text-xs text-slate-500">
+            <div className="px-6 py-4 border-t border-slate-200 bg-slate-50/50 flex justify-between items-center text-xs text-slate-500">
               <p>Showing all {filteredUsers.length} results</p>
               <div className="flex gap-2">
                  <button className="px-3 py-1 border border-slate-200 rounded-md bg-white hover:bg-slate-50 disabled:opacity-50" disabled>Previous</button>
                  <button className="px-3 py-1 border border-slate-200 rounded-md bg-white hover:bg-slate-50 disabled:opacity-50" disabled>Next</button>
               </div>
-           </div>
+            </div>
         )}
       </div>
     </div>

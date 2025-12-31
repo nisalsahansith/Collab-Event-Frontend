@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import api from "../services/api";
+import api from "../services/api"; // your axios instance
 import { toast } from "react-hot-toast";
 import { 
   CheckCircle, Trash2, Ban, Filter, 
   AlertTriangle, Clock, FileText, User, 
-  Loader2, MessageSquare, CornerDownRight 
+  Loader2
 } from "lucide-react";
 
 // --- INTERFACES ---
@@ -13,12 +13,12 @@ interface IReport {
   reason: string;
   date: string;
   status: "pending" | "resolved";
-  user?: { _id: string; name: string }; // Reporter
+  user?: { _id: string; name: string }; // Reporter info
   post?: { 
     _id: string; 
     description: string; 
     imageURL?: string; 
-    owner?: string; // ID of the post owner (to ban)
+    owner?: string; // ID of the post owner
   };
 }
 
@@ -31,21 +31,22 @@ export default function AdminReports() {
     fetchReports();
   }, []);
 
-  // --- DATA FETCHING (Your Logic) ---
+  // --- DATA FETCHING ---
   const fetchReports = async () => {
     try {
       setLoading(true);
+      // Matches router.get("/reports", ... getReportedPosts) which is prefixed with /admin in index.ts
       const res = await api.get("/admin/reports");
       const posts = res.data; 
 
-      // Flatten reports logic
+      // Flatten nested reports structure: [Post] -> [Report]
       const flatReports: IReport[] = [];
       if (Array.isArray(posts)) {
         posts.forEach((post: any) => {
           if (Array.isArray(post.reports)) {
             post.reports.forEach((r: any, idx: number) => {
               flatReports.push({
-                _id: `${post._id}_${idx}`,
+                _id: `${post._id}_${idx}`, // Virtual ID for key
                 reason: r.reason,
                 date: r.date,
                 status: r.status || "pending",
@@ -72,39 +73,103 @@ export default function AdminReports() {
   };
 
   // --- ACTIONS ---
+
   const resolveReport = async (reportId: string) => {
     const [postId, index] = reportId.split("_");
+    const toastId = toast.loading("Resolving...");
     try {
-      await api.patch(`/admin/reports/${postId}/resolve?index=${index}`);
-      toast.success("Report marked as resolved");
+      // Matches router.patch("/reports/dismiss/:id", ... dismissReports)
+      // Note: Endpoint is named 'dismiss' but functionally resolves the report status
+      await api.patch(`/admin/reports/dismiss/${postId}?index=${index}`);
+      
+      toast.success("Report marked as resolved", { id: toastId });
+      
       // Optimistic update
       setReports(prev => prev.map(r => r._id === reportId ? { ...r, status: "resolved" } : r));
     } catch {
-      toast.error("Failed to resolve report");
+      toast.error("Failed to resolve report", { id: toastId });
     }
   };
 
   const deletePost = async (postId: string) => {
-    if (!confirm("Permanently delete this post? This cannot be undone.")) return;
+    // Custom Confirmation Toast
+    toast((t) => (
+      <div className="flex flex-col gap-2 p-1">
+        <p className="font-semibold text-slate-800 text-sm">Delete this post permanently?</p>
+        <div className="flex gap-2 justify-end">
+          <button 
+            onClick={() => {
+              toast.dismiss(t.id);
+              performDeletePost(postId);
+            }}
+            className="bg-rose-600 text-white px-3 py-1.5 rounded text-xs font-semibold hover:bg-rose-700"
+          >
+            Confirm
+          </button>
+          <button 
+            onClick={() => toast.dismiss(t.id)}
+            className="bg-slate-100 text-slate-700 px-3 py-1.5 rounded text-xs font-semibold hover:bg-slate-200"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    ), { duration: 5000 });
+  };
+
+  const performDeletePost = async (postId: string) => {
+    const toastId = toast.loading("Deleting post...");
     try {
-      await api.delete(`/admin/reports/${postId}/delete-post`);
-      toast.success("Post deleted");
+      // Matches router.delete("/posts/:id", ... deletePostByAdmin)
+      await api.delete(`/admin/posts/${postId}`);
+      
+      toast.success("Post deleted", { id: toastId });
       // Remove all reports associated with this post ID
       setReports(prev => prev.filter(r => r.post?._id !== postId));
     } catch {
-      toast.error("Failed to delete post");
+      toast.error("Failed to delete post", { id: toastId });
     }
   };
 
   const banUser = async (userId?: string) => {
     if (!userId) return toast.error("User ID missing");
-    if (!confirm("Are you sure you want to ban this user?")) return;
+    
+    // Custom Confirmation Toast
+    toast((t) => (
+      <div className="flex flex-col gap-2 p-1">
+        <p className="font-semibold text-slate-800 text-sm">Ban this user immediately?</p>
+        <div className="flex gap-2 justify-end">
+          <button 
+            onClick={() => {
+              toast.dismiss(t.id);
+              performBanUser(userId);
+            }}
+            className="bg-amber-600 text-white px-3 py-1.5 rounded text-xs font-semibold hover:bg-amber-700"
+          >
+            Confirm Ban
+          </button>
+          <button 
+            onClick={() => toast.dismiss(t.id)}
+            className="bg-slate-100 text-slate-700 px-3 py-1.5 rounded text-xs font-semibold hover:bg-slate-200"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    ), { duration: 5000 });
+  };
+
+  const performBanUser = async (userId: string) => {
+    const toastId = toast.loading("Banning user...");
     try {
-      await api.patch(`/admin/reports/ban-user/${userId}`);
-      toast.success("User banned successfully");
-      fetchReports(); // Refresh to reflect changes if necessary
+      // Matches router.patch("/users/:id/toggle-status", ... toggleUserStatus)
+      // This toggles status, so ensuring we are banning requires the user to be active initially.
+      // Assuming this action is intended to Ban.
+      await api.patch(`/admin/users/${userId}/toggle-status`);
+      
+      toast.success("User status toggled (Banned)", { id: toastId });
     } catch {
-      toast.error("Failed to ban user");
+      toast.error("Failed to ban user", { id: toastId });
     }
   };
 

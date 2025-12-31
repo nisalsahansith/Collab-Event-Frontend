@@ -27,13 +27,27 @@ export default function Login() {
       const data: any = await login(email, password);
 
       if (data?.data?.accessToken) {
+        // Store tokens
         localStorage.setItem("accessToken", data.data.accessToken);
         localStorage.setItem("refreshToken", data.data.refreshToken);
         localStorage.setItem("userId", data.data.id);
-        
+    
+        // Get full user details
         const resData: any = await getMyDetails();
+        console.log(resData)
         setUser(resData.data);
 
+        // Check if user is banned
+        if (resData.data.banned || resData.data.status === "banned") {
+          toast.error("Your account is suspended. Please contact support.");
+          // Optional: clear tokens
+          localStorage.removeItem("accessToken");
+          localStorage.removeItem("refreshToken");
+          localStorage.removeItem("userId");
+          return; // Stop login flow
+        }
+
+        // Redirect based on role
         if (data.data.roles[0] === "ADMIN" || data.data.roles[0] === 'admin') {
           toast.success("Welcome back! 🚀");
           setTimeout(() => navigate("/admin-dashboard"), 800);

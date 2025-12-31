@@ -17,6 +17,7 @@ import UsersPage from '../pages/UserMAnagement';
 import AdminReports from '../pages/AdminReports';
 import AdminPostsPage from '../pages/AdminPostPage';
 import AdminSettings from '../pages/AdminSettingPage';
+import AdminAnalytics from '../pages/Analytics';
 
 const AppRoutes = () => (
   <Routes>
@@ -37,6 +38,7 @@ const AppRoutes = () => (
     <Route path='/admin-report' element={<AdminReports />} />
     <Route path='admin-posts' element={<AdminPostsPage />} />
     <Route path='/admin-setting' element={<AdminSettings />} />
+    <Route path='/anaytics' element={<AdminAnalytics />} />
   </Routes>
 );
 
