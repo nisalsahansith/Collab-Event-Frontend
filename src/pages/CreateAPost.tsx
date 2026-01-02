@@ -121,8 +121,10 @@ export default function CreatePost() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-100">
-      <Header handleLogout={logout} />
-
+      <Header handleLogout={() => {
+              localStorage.clear();
+              window.location.href = "/login";
+            }} />
       <div className="flex-1 flex justify-center px-4 py-6">
         <div className="bg-white w-full max-w-3xl rounded-2xl shadow-xl p-8">
           
@@ -184,7 +186,7 @@ export default function CreatePost() {
                 ))}
               </div>
             </div>
-            
+
              <div>
               <Toaster position="top-right" reverseOrder={false} />
               {/* Rest of your Dashboard JSX */}

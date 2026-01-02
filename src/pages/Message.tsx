@@ -67,10 +67,10 @@ export default function ChatPage() {
     const loadUsers = async () => {
         // ... (Keep existing logic)
         try {
-            const res = await api.get("/messages/chats");
+          const res = await api.get("/messages/chats");
             if (!Array.isArray(res.data)) return;
             const formatted: ChatUser[] = res.data.map((u: any) => ({
-                id: u._id, name: u.name, avatar: u.image || "https://images.rawpixel.com/image_png_800/cHJpdmF0ZS9sci9pbWFnZXMvd2Vic2l0ZS8yMDIzLTAxL3JtNjA5LXNvbGlkaWNvbi13LTAwMi1wLnBuZw.png", lastMessage: u.lastMessage || "",
+                id: u._id, name: u.name, avatar: u.imageURL || u.image || "https://images.rawpixel.com/image_png_800/cHJpdmF0ZS9sci9pbWFnZXMvd2Vic2l0ZS8yMDIzLTAxL3JtNjA5LXNvbGlkaWNvbi13LTAwMi1wLnBuZw.png", lastMessage: u.lastMessage || "",
             }));
             setUsers(formatted);
             if (!selectedUser && formatted.length) { setSelectedUser(formatted[0]); loadMessages(formatted[0].id); }
@@ -177,8 +177,10 @@ const handleSend = async () => {
 
   return (
     <div className="flex flex-col h-screen bg-slate-50 font-sans overflow-hidden">
-      <Header handleLogout={() => {}} />
-
+      <Header handleLogout={() => {
+              localStorage.clear();
+              window.location.href = "/login";
+            }} />
       <div className="flex-1 flex flex-col max-w-7xl mx-auto w-full p-4 sm:p-6 min-h-0">
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-1 min-h-0">
           

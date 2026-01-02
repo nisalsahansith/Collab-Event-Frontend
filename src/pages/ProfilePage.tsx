@@ -8,6 +8,7 @@ import toast, { Toaster } from "react-hot-toast";
 
 /* ================= TYPES ================= */
 interface User {
+  imageURL: string;
   _id: string;
   name: string;
   image?: string;
@@ -232,7 +233,10 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-slate-50 font-sans flex flex-col">
       <Toaster position="top-right" toastOptions={{ className: 'text-sm font-medium' }} />
-      <Header handleLogout={() => {}} />
+      <Header handleLogout={() => {
+              localStorage.clear();
+              window.location.href = "/login";
+            }} />
 
       <main className="flex-1 py-10 px-4 sm:px-6">
         <div className="max-w-5xl mx-auto">
@@ -386,7 +390,7 @@ export default function ProfilePage() {
                         {comments[post._id]?.map((c) => (
                           <div key={c._id} className="flex gap-3 group">
                             <img
-                              src={c.user.image || DEFAULT_AVATAR}
+                              src={c.user.imageURL || DEFAULT_AVATAR}
                               className="w-8 h-8 rounded-full border border-white shadow-sm flex-shrink-0"
                             />
                             <div className="flex-1 bg-white p-3 rounded-2xl rounded-tl-none border border-slate-200 shadow-sm relative">
