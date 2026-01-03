@@ -1,9 +1,3 @@
-Here is the updated `README.md` tailored for your **Collab-Event** project using the MERN stack, Vercel hosting, and the structure you provided.
-
-I have set up placeholders for your screenshots (e.g., `![Sign In](path/to/image.png)`). You will need to upload your screenshots to your GitHub repo (usually in an `assets` or `screenshots` folder) and update the paths.
-
----
-
 # Collab-Event – Collaborative Event Management Platform
 
 ## 📌 Project Description
