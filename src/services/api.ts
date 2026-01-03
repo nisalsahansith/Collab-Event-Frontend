@@ -1,11 +1,12 @@
 import axios, { AxiosError } from "axios";
 import { refreshTokens } from "./auth"; 
 
-const api = axios.create({
-  // baseURL: "https://collab-event-backend-splt.vercel.app/api/v1",
-  baseURL: import.meta.env.MODE === "development" 
+const BASE_URL = import.meta.env.MODE === "development" 
   ? "http://localhost:5000/api/v1" 
-    : "https://collab-event-backend-splt.vercel.app/api/v1",
+  : "https://collab-event-backend-splt.vercel.app/api/v1";
+
+const api = axios.create({
+  baseURL: BASE_URL,
   withCredentials: true,
 });
 
